@@ -1,4 +1,15 @@
+#!/usr/bin/env python3
 
+"""
+Package: oeis
+SEQUENCE DATA FROM OEIS
+http://psychedelic-geometry.blogspot.com/
+Author: Enrique Pérez Herrero
+Date:    14-Jun-2021
+Updated: 14-May-2019
+"""
+
+import re
 import requests
 
 OEIS_URL = 'http://oeis.org/'
@@ -8,7 +19,9 @@ TEXT_TAGS = {
     'description': "%N",
     'author': "%A",
     'line_tags': ["%S", "%T", "%U"],
-    'keywords': "%K"
+    'keywords': "%K",
+    'crossrefs': "%Y",
+    'offset': "%O"
 }
 
 def oeis_md_link(id_):
@@ -25,6 +38,7 @@ class OEIS_Sequence:
         self.terms = self.oeis_terms(self.internal_format)
         self.authors = self.oeis_authors(self.internal_format)
         self.keywords = self.oeis_keywords(self.internal_format)
+        self.crossrefs = self.oeis_crossrefs(self.internal_format)
 
     @classmethod
     def oeis_url(cls, id_):
@@ -33,18 +47,22 @@ class OEIS_Sequence:
     @classmethod
     def oeis_text_url(cls, id_):
         return f"{OEIS_URL}search?q=id:{id_}&fmt=text"
-    
+
     @classmethod
     def oeis_internal_format(cls, text_url):
         internal_format = requests.get(text_url)
         # response.encoding = "utf-8"
         return internal_format.text
-    
+
+    @classmethod
+    def oeis_text_lines(cls, internal_format, tag):
+        internal_format = internal_format.split("\n")
+        return [line for line in internal_format if TEXT_TAGS[tag] in line]
+
     @classmethod
     def oeis_text_line(cls, internal_format, tag):
-        internal_format = internal_format.split("\n")
-        return [line for line in internal_format if TEXT_TAGS[tag] in line][0]
-    
+        return cls.oeis_text_lines(internal_format, tag)[0]
+
     @classmethod
     def oeis_get_id(cls, internal_format):
         id_ = cls.oeis_text_line(internal_format, 'id')
@@ -55,7 +73,7 @@ class OEIS_Sequence:
         id_ = cls.oeis_get_id(internal_format)
         desc = cls.oeis_text_line(internal_format, 'description')
         return desc.split(id_)[1].strip()
-    
+
     @classmethod
     def oeis_terms(cls, internal_format):
         id_ = cls.oeis_get_id(internal_format)
@@ -68,7 +86,7 @@ class OEIS_Sequence:
                 data_line = data_line[0].split(id_)[1].strip()
                 terms = terms + data_line
         return [int(x) for x in terms.split(",")]
-    
+
     @classmethod
     def oeis_authors(cls, internal_format):
         id_ = cls.oeis_get_id(internal_format)
@@ -78,11 +96,22 @@ class OEIS_Sequence:
             authors_line = authors_line.split(",")[0]
         authors_line = authors_line.strip().replace("_", "")
         return authors_line
-    
+
     @classmethod
     def oeis_keywords(cls, internal_format):
         id_ = cls.oeis_get_id(internal_format)
         keywords = cls.oeis_text_line(internal_format, 'keywords')
         keywords = keywords.split(id_)[1].strip()
         return keywords.split(",")
+
+    @classmethod
+    def oeis_crossrefs(cls, internal_format):
+        id_ = cls.oeis_get_id(internal_format)
+        crossrefs = cls.oeis_text_lines(internal_format, "crossrefs")
+        crossrefs = [line.split(id_)[1] for line in crossrefs]
+        crefs = []
+        for line in crossrefs:
+            crefs = crefs + re.findall(r"A\d{6}", line)
+        return crefs
+
 

@@ -1,2 +1,7 @@
 draft/
 **/*.ipynb_checkpoints/
+update.sh
+update.ipynb
+build/
+oeis.egg-info/
+

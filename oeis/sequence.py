@@ -17,11 +17,15 @@ OEIS_URL = 'http://oeis.org/'
 TEXT_TAGS = {
     'id': "%I",
     'description': "%N",
+    'terms_tags': ["%S", "%T", "%U"],
+    'comments': "%C",
+    'links': "%H",
+    'formula': "%F",
     'author': "%A",
-    'line_tags': ["%S", "%T", "%U"],
     'keywords': "%K",
     'crossrefs': "%Y",
-    'offset': "%O"
+    'offset': "%O",
+    'keywords': "%K"
 }
 
 def oeis_md_link(id_):
@@ -39,6 +43,8 @@ class OEIS_Sequence:
         self.authors = self.oeis_authors(self.internal_format)
         self.keywords = self.oeis_keywords(self.internal_format)
         self.crossrefs = self.oeis_crossrefs(self.internal_format)
+        self.comments = self.oeis_comments(self.internal_format)
+        self.license = self.oeis_license(self.internal_format)
 
     @classmethod
     def oeis_url(cls, id_):
@@ -79,13 +85,20 @@ class OEIS_Sequence:
         id_ = cls.oeis_get_id(internal_format)
         terms = ""
         internal_format = internal_format.split("\n")
-        for line_tag in TEXT_TAGS['line_tags']:
+        for line_tag in TEXT_TAGS['terms_tags']:
             data_line = [line for line in internal_format if line_tag in line]
             if data_line:
                 # when terms line exists
                 data_line = data_line[0].split(id_)[1].strip()
                 terms = terms + data_line
         return [int(x) for x in terms.split(",")]
+    
+    @classmethod
+    def oeis_comments(cls, internal_format):
+        id_ = cls.oeis_get_id(internal_format)
+        comments = cls.oeis_text_lines(internal_format, "comments")
+        comments  = [line.split(id_)[1].strip() for line in comments]
+        return comments
 
     @classmethod
     def oeis_authors(cls, internal_format):
@@ -113,5 +126,10 @@ class OEIS_Sequence:
         for line in crossrefs:
             crefs = crefs + re.findall(r"A\d{6}", line)
         return crefs
+
+    @classmethod
+    def oeis_license(cls, internal_format):
+        return internal_format.split("\n")[-2].split("# ")[1]
+
 
 
